@@ -20064,7 +20064,7 @@ function createTheSportsDb(deps) {
           status: clean(r.strStatus),
           positionRaw: clean(r.strPosition),
           photoUrl: photoOf(r),
-          supported: pos.ok,
+          supported: pos.ok || pos.reason === "unknown",
           unsupportedReason: pos.ok ? void 0 : pos.reason,
           positions: pos.ok ? pos.positions : void 0
         };
@@ -20187,7 +20187,7 @@ function createWikidata(deps) {
       nationality: r.nationality,
       birthDate: r.birthDate,
       positionRaw: r.positionRaw,
-      supported: pos.ok,
+      supported: pos.ok || pos.reason === "unknown",
       unsupportedReason: pos.ok ? void 0 : pos.reason,
       positions: pos.ok ? pos.positions : void 0
     };
@@ -20548,7 +20548,9 @@ function createPlayerService(deps) {
     if (!src) throw new AppError("invalid_id", "Fonte de dados n\xE3o dispon\xEDvel.");
     const bio = await src.lookup(id, signal);
     const foot = parseFoot(bio.side);
-    const pos = mapExternalPosition(bio.positionRaw, foot);
+    let pos = mapExternalPosition(bio.positionRaw, foot);
+    const assumedPos = !pos.ok && pos.reason === "unknown";
+    if (assumedPos) pos = { ok: true, positions: ["CM"] };
     if (!pos.ok) {
       throw new AppError(
         "unsupported_position",
@@ -20556,6 +20558,7 @@ function createPlayerService(deps) {
       );
     }
     const warnings = [];
+    if (assumedPos) warnings.push("A fonte n\xE3o informa a posi\xE7\xE3o deste jogador: assumi meio-campista (MC).");
     let seasons = [];
     if (source === "wikidata") {
       warnings.push("Sem estat\xEDsticas de temporada: a fonte (Wikidata) traz s\xF3 posi\xE7\xE3o, corpo e idade. O Prime \xE9 uma estimativa.");
