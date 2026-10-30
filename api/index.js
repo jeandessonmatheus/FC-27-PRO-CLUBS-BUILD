@@ -19917,10 +19917,26 @@ var GROUP_OF = {
   RB: "FB"
 };
 function mapExternalPosition(raw2, foot) {
-  const s = (raw2 ?? "").toLowerCase().replace(/_/g, " ").replace(/\s+/g, " ").trim();
+  const s = (raw2 ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/_/g, " ").replace(/\s+/g, " ").trim();
   if (!s) return { ok: false, reason: "unknown" };
   const ok = (positions) => ({ ok: true, positions });
-  if (/keeper|goalie/.test(s)) return { ok: false, reason: "goalkeeper" };
+  if (/keeper|goalie|goleiro|guarda[- ]?redes|portero/.test(s)) return { ok: false, reason: "goalkeeper" };
+  if (/wing[- ]?half|half[- ]?back/.test(s)) return ok(["CM"]);
+  if (/lateral|ala\b|carrilero/.test(s) && !/(centre|center)/.test(s)) {
+    if (/esquerd|izquierd/.test(s)) return ok(["LB"]);
+    if (/direit|derech/.test(s)) return ok(["RB"]);
+    return ok(foot === "left" ? ["LB", "RB"] : ["RB", "LB"]);
+  }
+  if (/zagueiro|defesa central|defensa central|central\b.*defes|libero/.test(s)) return ok(["CB"]);
+  if (/volante|meio[- ]?campista defensivo|medio centro defensivo|pivote|mediocentro defensivo/.test(s)) return ok(["CDM"]);
+  if (/meia[- ]?atacante|meia armador|armador|mediapunta|meia ofensivo|enganche/.test(s)) return ok(["CAM"]);
+  if (/ponta esquerd|extremo izquierdo|extremo esquerdo/.test(s)) return ok(["LW"]);
+  if (/ponta direit|extremo derecho|extremo direito/.test(s)) return ok(["RW"]);
+  if (/^ponta$|^extremo$|\bponta\b/.test(s)) return ok(foot === "left" ? ["LW", "RW"] : ["RW", "LW"]);
+  if (/segundo (atacante|avancado|delantero)|segunda ponta/.test(s)) return ok(["ST", "CAM"]);
+  if (/centroavante|atacante|avancado|delantero|punta\b/.test(s)) return ok(["ST"]);
+  if (/meio[- ]?campista|meia\b|meio[- ]?campo|centrocampista|mediocampista|medio centro|volante central/.test(s)) return ok(["CM"]);
+  if (/defensor|defensa|defesa/.test(s)) return ok(["CB"]);
   if (/wing[- ]?back/.test(s)) {
     if (/left/.test(s)) return ok(["LB"]);
     if (/right/.test(s)) return ok(["RB"]);
